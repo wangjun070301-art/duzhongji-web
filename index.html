@@ -29,10 +29,101 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>duzhongji</title>
+  <title>读中记 · 背单词</title>
   <link rel="manifest" href="manifest.json">
+
+  <!--
+    Start the heavy downloads while the bootstrap is still being parsed.
+    Without this the browser only discovers main.dart.js after flutter.js has
+    run, which serialises two multi-megabyte fetches and pushes first paint
+    past five seconds on a domestic connection.
+  -->
+  <link rel="preload" href="main.dart.js" as="script" crossorigin>
+  <link rel="preload" href="canvaskit/canvaskit.wasm" as="fetch"
+        type="application/wasm" crossorigin>
+  <link rel="preload" href="assets/assets/fonts/Deng.ttf" as="font"
+        type="font/ttf" crossorigin>
+  <link rel="preload" href="assets/assets/fonts/roboto-regular.ttf" as="font"
+        type="font/ttf" crossorigin>
+
+  <style>
+    /*
+      Flutter paints nothing until the engine is up, so the browser would show
+      a blank white page for seconds. This splash paints on the first HTML
+      parse and is removed once Flutter reports its first frame.
+    */
+    html, body { margin: 0; height: 100%; }
+    body { background: #FDF6EA; }
+    #dzj-splash {
+      position: fixed; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 22px;
+      background: linear-gradient(170deg, #FDF6EA 0%, #F7E2C3 100%);
+      font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+      transition: opacity 260ms ease; z-index: 9999;
+    }
+    #dzj-splash.done { opacity: 0; pointer-events: none; }
+    #dzj-splash svg { width: 84px; height: 84px; }
+    #dzj-splash .name {
+      font-size: 21px; letter-spacing: 5px; color: #6B5B47; font-weight: 500;
+    }
+    #dzj-splash .hint {
+      font-size: 12.5px; color: #A6967F; letter-spacing: 1px;
+    }
+    #dzj-splash .bar {
+      width: 132px; height: 3px; border-radius: 2px;
+      background: rgba(194,120,43,0.16); overflow: hidden;
+    }
+    #dzj-splash .bar i {
+      display: block; height: 100%; width: 40%; border-radius: 2px;
+      background: #C2782B; animation: dzj-slide 1.15s ease-in-out infinite;
+    }
+    @keyframes dzj-slide {
+      0% { transform: translateX(-110%); }
+      100% { transform: translateX(320%); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #dzj-splash .bar i { animation: none; width: 100%; }
+    }
+  </style>
 </head>
 <body>
+  <div id="dzj-splash">
+    <svg viewBox="0 0 64 64" aria-hidden="true">
+      <path d="M32 8c11 6 18 15 18 24S42 52 32 56C22 52 14 41 14 32S21 14 32 8z"
+            fill="#C2782B"/>
+      <path d="M32 14v38" stroke="#FDF6EA" stroke-width="2.6"
+            stroke-linecap="round"/>
+    </svg>
+    <div class="name">读中记</div>
+    <div class="bar"><i></i></div>
+    <div class="hint">正在加载词库…</div>
+  </div>
+  <script>
+    // Remove the splash on Flutter's first frame. The event fires from the
+    // engine; the timeout is a safety net so a failed boot still reveals the
+    // error page instead of sitting on the splash forever.
+    (function hideSplashWhenReady() {
+      var splash = document.getElementById('dzj-splash');
+      if (!splash) return;
+      function hide() {
+        if (!splash || splash.classList.contains('done')) return;
+        splash.classList.add('done');
+        setTimeout(function () { splash.remove(); }, 320);
+      }
+      window.addEventListener('flutter-first-frame', hide);
+      setTimeout(hide, 12000);
+    })();
+
+    // Register the offline cache. Flutter's own worker is disabled by the
+    // build, so this is the only thing making repeat visits instant.
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('dzj-sw.js').catch(function (e) {
+          console.warn('offline cache unavailable:', e);
+        });
+      });
+    }
+  </script>
   <!--
     You can customize the "flutter_bootstrap.js" script.
     This is useful to provide a custom configuration to the Flutter loader

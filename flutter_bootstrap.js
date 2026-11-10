@@ -42,6 +42,6 @@ _flutter.buildConfig = {useLocalCanvasKit:!0,"engineRevision":"deb287481e3ce9468
 
 _flutter.loader.load({
   serviceWorkerSettings: {
-    serviceWorkerVersion: "2312173005" /* Flutter's service worker is deprecated and will be removed in a future Flutter release. */
+    serviceWorkerVersion: "4134880895" /* Flutter's service worker is deprecated and will be removed in a future Flutter release. */
   }
 });
