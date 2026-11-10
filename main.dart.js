@@ -32807,7 +32807,7 @@ ga2F(a){var s=this.b
 return s==null?null:s.nonce},
 ga0O(){var s=this.b
 s=s==null?null:s.fontFallbackBaseUrl
-return s==null?"https://fonts.gstatic.com/s/":s}}
+return s==null?"/__no_fallback_fonts__/":s}}
 A.Pb.prototype={
 gla(a){var s,r,q=this.d
 if(q==null){q=v.G
