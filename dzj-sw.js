@@ -71,6 +71,9 @@ self.addEventListener('fetch', (event) => {
       (async () => {
         const cache = await caches.open(VERSION);
         const cached = await cache.match(req);
+        // Only an OK response may enter the cache. A 404 stored here would be
+        // served forever, even after the file exists — that is what kept the
+        // word pictures blank after a path bug was fixed.
         const network = fetch(req)
           .then((res) => {
             if (res && res.status === 200) cache.put(req, res.clone());
