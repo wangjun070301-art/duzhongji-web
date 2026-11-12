@@ -124,19 +124,6 @@
       window.addEventListener('flutter-first-frame', hide);
       setTimeout(hide, 12000);
     })();
-
-    // Register the offline cache. Flutter's own worker is disabled by the
-    // build, so this is the only thing making repeat visits instant.
-    //
-    // Registered here, during parsing, not on `load`: waiting for load meant
-    // the worker was not even installing while the app booted, so the first
-    // visit cached nothing and the *second* visit was still uncontrolled
-    // (measured: 22.6 s then 4.1 s, worker only active on visit 3).
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/duzhongji-web/dzj-sw.js').catch(function (e) {
-        console.warn('offline cache unavailable:', e);
-      });
-    }
   </script>
   <!--
     You can customize the "flutter_bootstrap.js" script.
