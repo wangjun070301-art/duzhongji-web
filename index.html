@@ -14,7 +14,7 @@
     This is a placeholder for base href that will be replaced by the value of
     the `--base-href` argument provided to `flutter build`.
   -->
-  <base href="/duzhongji-web/">
+  <base href="https://funny-rhinoceros-d8ezbn6ae352c03-1511359305.tcloudbaseapp.com/">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
@@ -39,10 +39,10 @@
   <meta http-equiv="Content-Security-Policy" content="font-src 'self' data:">
 
   <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
+  <link rel="icon" type="image/png" href="/duzhongji-web/favicon.png"/>
 
   <title>读中记 · 背单词</title>
-  <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="/duzhongji-web/manifest.json">
 
   <!--
     Start the heavy downloads while the bootstrap is still being parsed.
@@ -56,12 +56,6 @@
     same 3 MB file (measured: two entries, 4.3 s and 4.2 s). The bootstrap is
     parsed in the same tick, so the head start was worth nothing anyway.
   -->
-  <link rel="preload" href="canvaskit/chromium/canvaskit.wasm" as="fetch"
-        type="application/wasm" crossorigin>
-  <link rel="preload" href="assets/assets/fonts/Deng.ttf" as="font"
-        type="font/ttf" crossorigin>
-  <link rel="preload" href="assets/assets/fonts/roboto-regular.ttf" as="font"
-        type="font/ttf" crossorigin>
 
   <style>
     /*
@@ -139,7 +133,7 @@
     // visit cached nothing and the *second* visit was still uncontrolled
     // (measured: 22.6 s then 4.1 s, worker only active on visit 3).
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('dzj-sw.js').catch(function (e) {
+      navigator.serviceWorker.register('/duzhongji-web/dzj-sw.js').catch(function (e) {
         console.warn('offline cache unavailable:', e);
       });
     }
