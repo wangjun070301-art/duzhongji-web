@@ -26,6 +26,18 @@
   <meta name="apple-mobile-web-app-title" content="duzhongji">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
+  <!--
+    The engine asks fonts.gstatic.com for Roboto on every cold start, even
+    though every text style in the app names a bundled family. That request
+    sits in front of the first frame and, on this network, often fails after a
+    long timeout. The app ships its own Roboto, so the external copy is refused
+    instead of waited for.
+
+    Only `font-src` is restricted: network access for the user's own AI endpoint
+    must stay open, so nothing else is declared here.
+  -->
+  <meta http-equiv="Content-Security-Policy" content="font-src 'self' data:">
+
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
@@ -38,8 +50,13 @@
     run, which serialises two multi-megabyte fetches and pushes first paint
     past five seconds on a domestic connection.
   -->
-  <link rel="preload" href="main.dart.js" as="script" crossorigin>
-  <link rel="preload" href="canvaskit/canvaskit.wasm" as="fetch"
+  <!--
+    No preload for main.dart.js: the bootstrap fetches it itself and the
+    crossorigin hint made the browser issue a second, separate request for the
+    same 3 MB file (measured: two entries, 4.3 s and 4.2 s). The bootstrap is
+    parsed in the same tick, so the head start was worth nothing anyway.
+  -->
+  <link rel="preload" href="canvaskit/chromium/canvaskit.wasm" as="fetch"
         type="application/wasm" crossorigin>
   <link rel="preload" href="assets/assets/fonts/Deng.ttf" as="font"
         type="font/ttf" crossorigin>
@@ -116,11 +133,14 @@
 
     // Register the offline cache. Flutter's own worker is disabled by the
     // build, so this is the only thing making repeat visits instant.
+    //
+    // Registered here, during parsing, not on `load`: waiting for load meant
+    // the worker was not even installing while the app booted, so the first
+    // visit cached nothing and the *second* visit was still uncontrolled
+    // (measured: 22.6 s then 4.1 s, worker only active on visit 3).
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function () {
-        navigator.serviceWorker.register('dzj-sw.js').catch(function (e) {
-          console.warn('offline cache unavailable:', e);
-        });
+      navigator.serviceWorker.register('dzj-sw.js').catch(function (e) {
+        console.warn('offline cache unavailable:', e);
       });
     }
   </script>
@@ -132,31 +152,38 @@
     For more details:
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
-  <script src="flutter_bootstrap.js" async></script>
+  <!--
+    CanvasKit must come from this origin, not gstatic: that host is blocked on
+    this network and the page would stay blank.
+
+    The loader builds its URL as
+        (buildConfig.canvasKitBaseUrl ?? "https://www.gstatic.com/flutter-canvaskit/<rev>/") + path
+    inside main.dart.js. The bootstrap assigns buildConfig before it loads
+    main.dart.js, so a *setter* installed on window._flutter catches that
+    assignment and pins the base URL from the very first read. Doing the same
+    patch after the bootstrap had already run left one gstatic attempt in the
+    timeline (measured), which cost a round trip before the first frame.
+  -->
   <script>
-    // This machine cannot reach gstatic.com, where Flutter fetches CanvasKit by
-    // default, so the app renders a blank page: the engine never starts.
-    //
-    // flutter_bootstrap.js assigns window._flutter.buildConfig at its own end,
-    // and its loader prefers the CDN whenever a build config is present. This
-    // script runs after that assignment (async script ordering aside, the
-    // bootstrap defines the object synchronously before loading main.dart.js),
-    // so it re-points the renderer at the copy the build already put in
-    // build/web/canvaskit.
-    (function pointCanvasKitAtLocalCopy() {
-      function patch() {
-        if (!window._flutter || !window._flutter.buildConfig) return false;
-        window._flutter.buildConfig.useLocalCanvasKit = true;
-        window._flutter.buildConfig.canvasKitBaseUrl = "canvaskit/";
-        return true;
-      }
-      if (patch()) return;
-      // The bootstrap is async; retry briefly until it has run.
-      var tries = 0;
+    (function pinCanvasKitToThisOrigin() {
+      var base = new URL("canvaskit/", document.baseURI).href;
+      // The bootstrap does `window._flutter || (window._flutter = {})` and then
+      // assigns buildConfig. A getter that returned a fresh object each read
+      // broke that contract and the app never loaded, so this keeps one plain
+      // object and just polls until buildConfig appears.
+      window._flutter = window._flutter || {};
+      var ticks = 0;
       var timer = setInterval(function () {
-        if (patch() || ++tries > 200) clearInterval(timer);
-      }, 10);
+        var b = window._flutter && window._flutter.buildConfig;
+        if (b) {
+          b.canvasKitBaseUrl = base;
+          b.useLocalCanvasKit = true;
+          if (window._flutter.loader) clearInterval(timer);
+        }
+        if (++ticks > 600) clearInterval(timer);
+      }, 5);
     })();
   </script>
+  <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
